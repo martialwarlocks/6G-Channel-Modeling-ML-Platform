@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6G Channel Modeling & ML Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="page">
+        <header class="site-header">
+            <div class="brand-block">
+                <h1 class="site-title">6G Channel Modeling & ML Platform</h1>
+                <p class="subtitle">End-to-end channel generation, model training, and evaluation</p>
+            </div>
+            <div class="meta-block">
+                <span class="meta-pill">MATLAB-Free Channel Simulation</span>
+                <span class="meta-pill">CNN</span>
+                <span class="meta-pill">LSTM</span>
+                <span class="meta-pill">DNN</span>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" onclick="switchTab('matlab')">Channel Generation</button>
+            <button class="tab-button" onclick="switchTab('training')">Model Training</button>
+            <button class="tab-button" onclick="switchTab('accuracy')">Accuracy & Results</button>
+            <button class="tab-button" onclick="switchTab('pipeline')">End-to-End Pipeline</button>
+            <button class="tab-button" onclick="switchTab('comparison')">Performance Comparison</button>
+        </nav>
+
+        <main class="container">
+            <!-- MATLAB / Python Channel Generation Tab -->
+            <section id="matlab-tab" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2>Generate 6G Channel Models</h2>
+                            <p class="card-description">
+                                Configure channel parameters and generate synthetic 6G channel datasets in Python.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="channel-type">Channel type</label>
+                            <select id="channel-type">
+                                <option value="CDL">CDL (Clustered Delay Line)</option>
+                                <option value="TDL">TDL (Tapped Delay Line)</option>
+                                <option value="THz">THz (Terahertz)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="num-samples">Number of samples</label>
+                            <input type="number" id="num-samples" value="1000" min="100" max="10000">
+                            <p class="field-hint">Use smaller values (e.g. 500–2000) for quicker experiments.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="snr-db">SNR (dB)</label>
+                            <input type="number" id="snr-db" value="20" min="0" max="40" step="1">
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="button-group">
+                            <button class="btn btn-primary" onclick="generateChannel()">Generate data</button>
+                            <button class="btn btn-ghost" onclick="generateMatlabScript()">Generate MATLAB script</button>
+                        </div>
+                        <div id="matlab-status" class="status-message"></div>
+                    </div>
+
+                    <div id="matlab-script-output" class="code-output" style="display: none;">
+                        <div class="code-header">
+                            <h3>Generated MATLAB script</h3>
+                            <button class="btn btn-small" onclick="copyMatlabScript()">Copy script</button>
+                        </div>
+                        <pre id="matlab-script-content"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Model Training Tab -->
+            <section id="training-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2>Train ML Models</h2>
+                            <p class="card-description">
+                                Train CNN (estimation), LSTM (prediction), and DNN (equalization) models on generated channel data.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="model-type">Model type</label>
+                            <select id="model-type">
+                                <option value="CNN">CNN (Channel Estimation)</option>
+                                <option value="LSTM">LSTM (Channel Prediction)</option>
+                                <option value="DNN">DNN (Channel Equalization)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="data-file">Data file (optional)</label>
+                            <input type="text" id="data-file" placeholder="channel_CDL_20240101_120000.mat">
+                            <p class="field-hint">Leave empty to auto-generate a compatible dataset.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Training configuration</label>
+                            <div class="form-row">
+                                <div class="form-group-inline">
+                                    <label for="epochs">Epochs</label>
+                                    <input type="number" id="epochs" value="50" min="1" max="200">
+                                </div>
+                                <div class="form-group-inline">
+                                    <label for="batch-size">Batch size</label>
+                                    <input type="number" id="batch-size" value="32" min="8" max="128">
+                                </div>
+                                <div class="form-group-inline">
+                                    <label for="learning-rate">Learning rate</label>
+                                    <input type="number" id="learning-rate" value="0.001" min="0.0001" max="0.01" step="0.0001">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <button class="btn btn-primary" onclick="trainModel()">Start training</button>
+                        <div id="training-status" class="status-message"></div>
+                    </div>
+
+                    <div id="training-progress" class="progress-container" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <p id="progress-text" class="progress-text">Training in progress...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Accuracy & Results Tab -->
+            <section id="accuracy-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2>Accuracy & Results</h2>
+                            <p class="card-description">
+                                Inspect validation metrics and training curves for each trained model and compare them with non-ML baselines.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-inline-row">
+                        <div class="form-group-inline">
+                            <label for="accuracy-model-type">Model</label>
+                            <select id="accuracy-model-type" onchange="loadAccuracy()">
+                                <option value="CNN">CNN</option>
+                                <option value="LSTM">LSTM</option>
+                                <option value="DNN">DNN</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadAccuracy()">Load results</button>
+                    </div>
+
+                    <div id="accuracy-status" class="status-message"></div>
+
+                    <div id="accuracy-results" class="results-container" style="display: none;">
+                        <div class="metrics-grid">
+                            <article class="metric-card">
+                                <h3>Final Validation Loss</h3>
+                                <p class="metric-value" id="final-loss">-</p>
+                            </article>
+                            <article class="metric-card">
+                                <h3>Final Validation MAE</h3>
+                                <p class="metric-value" id="final-mae">-</p>
+                            </article>
+                            <article class="metric-card">
+                                <h3>Relative Accuracy</h3>
+                                <p class="metric-value" id="accuracy-value">-</p>
+                            </article>
+                        </div>
+                        <section id="training-plot-container">
+                            <h3>Training history</h3>
+                            <img id="training-plot" src="" alt="Training history plot" style="max-width: 100%; display: none;">
+                        </section>
+
+                        <section style="margin-top: 20px;">
+                            <h3>Baseline comparison (ML vs non-ML)</h3>
+                            <p class="field-hint">
+                                Configure a test scenario and compare this model with classical, non-ML baselines (LS/MMSE/AR) on fresh data.
+                            </p>
+                            <div class="form-row" style="margin-top: 10px;">
+                                <div class="form-group">
+                                    <label for="accuracy-comp-channel-type">Channel type</label>
+                                    <select id="accuracy-comp-channel-type">
+                                        <option value="CDL">CDL (Clustered Delay Line)</option>
+                                        <option value="TDL">TDL (Tapped Delay Line)</option>
+                                        <option value="THz">THz (Terahertz)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="accuracy-comp-num-samples">Number of test samples</label>
+                                    <input type="number" id="accuracy-comp-num-samples" value="200" min="50" max="2000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="accuracy-comp-snr-db">SNR (dB)</label>
+                                    <input type="number" id="accuracy-comp-snr-db" value="20" min="0" max="40" step="1">
+                                </div>
+                            </div>
+                            <div class="card-footer" style="margin-top: 12px; padding-top: 10px;">
+                                <button class="btn btn-primary" onclick="compareAccuracy()">Compare with baselines</button>
+                                <div id="accuracy-comp-status" class="status-message" style="margin-top: 0;"></div>
+                            </div>
+                            <div id="accuracy-comp-results" class="results-container" style="display: none; margin-top: 12px;"></div>
+                        </section>
+                    </div>
+                </div>
+            </section>
+
+            <!-- End-to-End Pipeline Tab -->
+            <section id="pipeline-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2>End-to-End 6G Channel Pipeline</h2>
+                            <p class="card-description">
+                                Run a full Python pipeline: channel generation → CNN estimation → LSTM prediction → DNN equalization,
+                                with each step summarized below.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pipeline-channel-type">Channel type</label>
+                            <select id="pipeline-channel-type">
+                                <option value="CDL">CDL (Clustered Delay Line)</option>
+                                <option value="TDL">TDL (Tapped Delay Line)</option>
+                                <option value="THz">THz (Terahertz)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="pipeline-num-samples">Number of samples</label>
+                            <input type="number" id="pipeline-num-samples" value="128" min="16" max="2048">
+                        </div>
+                        <div class="form-group">
+                            <label for="pipeline-snr-db">SNR (dB)</label>
+                            <input type="number" id="pipeline-snr-db" value="20" min="0" max="40" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="pipeline-samples-visualize">Samples to visualize</label>
+                            <input type="number" id="pipeline-samples-visualize" value="16" min="1" max="64">
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <button class="btn btn-primary" onclick="runPipeline()">Run full pipeline</button>
+                        <div id="pipeline-status" class="status-message"></div>
+                    </div>
+
+                    <div id="pipeline-steps" class="results-container" style="display: none; margin-top: 20px;"></div>
+                </div>
+            </section>
+
+            <!-- Performance Comparison Tab -->
+            <section id="comparison-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2>Performance Comparison: ML vs Classical Algorithms</h2>
+                            <p class="card-description">
+                                Compare ML models (CNN, LSTM) with classical baselines (LS, MMSE, AR) using MSE, NMSE, and BER metrics.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="comparison-channel-type">Channel type</label>
+                            <select id="comparison-channel-type">
+                                <option value="CDL">CDL (Clustered Delay Line)</option>
+                                <option value="TDL">TDL (Tapped Delay Line)</option>
+                                <option value="THz">THz (Terahertz)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comparison-num-samples">Number of test samples</label>
+                            <input type="number" id="comparison-num-samples" value="200" min="50" max="1000">
+                        </div>
+                        <div class="form-group">
+                            <label for="comparison-snr-db">SNR (dB)</label>
+                            <input type="number" id="comparison-snr-db" value="20" min="0" max="40" step="1">
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <button class="btn btn-primary" onclick="runComparison()">Run Comparison</button>
+                        <div id="comparison-status" class="status-message"></div>
+                    </div>
+
+                    <div id="comparison-results" class="results-container" style="display: none; margin-top: 20px;"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+
